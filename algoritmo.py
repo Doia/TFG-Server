@@ -4,78 +4,98 @@ import pickle
 import numpy as np
 from sentence_transformers import SentenceTransformer, util, models
 import torch
-from asyncio.windows_events import NULL
-import time
+import constants
+import os
 
 
 class algoritmo:
 
     def __init__(self):
 
-        self.titleEmbeddings_file_path = "embeddings all-MiniLM-L6-v2 - titles"
-        self.overviewEmbeddings_file_path = "embeddings- 22-03-2022"
+        self.embeddings_path = "embeddings\\"
 
-        self.df_file_path = "Final-clean-dataset-0-duplicated.csv"
-        self.nombres_modelos = [
-            "sentence-transformers/paraphrase-MiniLM-L6-v2",
-            "sentence-transformers/all-MiniLM-L6-v2",
-        ]
-        
-        #DESCARGAR E INICIAR MODELOS
-        self.download_models()
-        self.modelos = list(map(lambda modelo: SentenceTransformer(model_name_or_path = "modelos/" + modelo), self.nombres_modelos))
+        self.actorsEmbeddings_file_path = self.embeddings_path + "embeddings_actors_asimetric_28-08-22"
+        self.titleEmbeddings_file_path = self.embeddings_path + "embeddings_title_28-08-22"
+        self.overviewEmbeddings_file_path = self.embeddings_path + "embeddings_overview-08-21"
+
+        self.overviewEmbeddings_isLoaded = False 
+        self.titleEmbeddings_isLoaded = False
+        self.actorsEmbeddings_isLoaded = False
+
+        self.df_file_path = self.embeddings_path + "Final dataset_08_21.csv"
+
+        self.model_name =  "sentence-transformers/all-MiniLM-L6-v2"
+
 
         #INICIAR DEVICE
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+        #DESCARGAR E INICIAR MODELOS
+        if os.path.exists("modelos/" + self.model_name):
+            print('LOADING MODELS...')
+            self.modelo = SentenceTransformer(model_name_or_path = "modelos/" + self.model_name)
+        else:
+            print('DOWNLOADING MODELS...')
+            self.modelo = SentenceTransformer(model_name_or_path = self.model_name)
+            self.modelo.save("modelos/" + self.model_name)
+
+        self.modelo = self.modelo.to(self.device)
+
+        print('LOADING EMBEDDINGS OVERVIEW...')
         #LOAD EMBEDDINGS OVERVIEW
         with open(self.overviewEmbeddings_file_path +'.pkl', "rb") as fIn:
-            self.overviewEmbeddings = pickle.load(fIn).to(self.device)
-        #self.overviewEmbeddings.cpu()
+            self.overviewEmbeddings = torch.from_numpy(pickle.load(fIn)).to(self.device)
+            self.overviewEmbeddings_isLoaded = True
+        
 
+        print('LOADING EMBEDDINGS TITLE...')
         #LOAD EMBEDDINGS TITLE
         with open(self.titleEmbeddings_file_path +'.pkl', "rb") as fIn:
-            self.titleEmbeddings = pickle.load(fIn).to(self.device)
-        #self.titleEmbeddings.cpu()
+            self.titleEmbeddings = torch.from_numpy(pickle.load(fIn)).to(self.device)
+            self.titleEmbeddings_isLoaded = True
 
-        #LOAD CSV
-        self.df_original = pd.read_csv(self.df_file_path)
+        # print('LOADING EMBEDDINGS ACTORS...')
+        # #LOAD EMBEDDINGS TITLE
+        # with open(self.actorsEmbeddings_file_path +'.pkl', "rb") as fIn:
+        #     self.actorsEmbeddings = torch.from_numpy(pickle.load(fIn)).to(self.device)
+        #     self.actorsEmbeddings_isLoaded = True
+        
 
+        print('ALL DATA LOADED SUCCESFULLY!\n')
 
-    def download_models(self):
-        self.modelos = list(map(lambda modelo: SentenceTransformer(model_name_or_path = modelo), self.nombres_modelos))
-
-        for i, modelo in enumerate(self.modelos):
-            modelo.save('modelos/' + self.nombres_modelos[i])
-
-    def execute(self, text, modelo, isTitle):
+    def execute(self, text, embbeding, genresToDiscard = None):
 
         #ALGORITMO
-        if isTitle:
+        if embbeding == constants.EMBEDDING.TITLE:
             embeddings = self.titleEmbeddings
-        else:
+        elif embbeding == constants.EMBEDDING.OVERVIEW:
             embeddings = self.overviewEmbeddings
-
-        modelo = self.modelos[modelo]
-        modelo = modelo.to(self.device)
+        elif embbeding == constants.EMBEDDING.ACTORS:
+            embeddings = self.actorsEmbeddings
 
         num_save = 50
         normalize_embeddings = False
         
-
-        query_embedding = modelo.encode(text,
+        query_embedding = self.modelo.encode(text,
                                         convert_to_tensor=True,
                                         device = self.device,
                                         normalize_embeddings=normalize_embeddings)
         cosenos_aux = util.pytorch_cos_sim(query_embedding, embeddings).cpu().numpy() #Matriz (cantidad_por_iteracion X len(embeddings))
         cosenos_aux = cosenos_aux[0]
+
+
+        #Lista Ids Que no quieres
+        #Filter with genres
+        if genresToDiscard != None:
+            for id in genresToDiscard:
+                cosenos_aux[id[0]] = -1
+   
         indexes_best_numGuardar = np.argpartition(-cosenos_aux, num_save-1)[0:num_save]
         cosenos_best_numGuardar = np.take(cosenos_aux, indexes_best_numGuardar)
         indexes_biencoder = np.take(indexes_best_numGuardar, np.argsort(-cosenos_best_numGuardar)).tolist()
-        cosenos_biencoder = np.take(cosenos_aux, indexes_biencoder).tolist()
+        #cosenos_biencoder = np.take(cosenos_aux, indexes_biencoder).tolist()
 
-        ids = []
-        for i in indexes_biencoder:
-            ids.append(self.df_original['id'][i])
-        return ids
+        return indexes_biencoder
+        
+
 

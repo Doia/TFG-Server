@@ -3,15 +3,20 @@ class Movie:
 
     def __init__(self, data):
 
-        self.film_id = data[0]
-        self.ids_similar_films = data[1]
-        self.genres = data[2]
-        self.original_title = data[3]
-        self.overview = data[4]
-        self.poster_path = data[5]
-        self.release_date = data[6]
-        self.runtime = data[7]
+        self.genres = data[0]
+        self.id = data[1]
+        self.original_title = data[2]
+        self.overview = data[3]
+        self.poster_path = data[4]
+        self.release_date = data[5]
+        self.runtime = data[6]
+        self.actors = data[7]
+        self.title_es = data[8]
+        self.overview_es = data[9]
+        self.len_overview = data[10]
+        self.actors_string = data[11]
 
-    def toJson(self):
-        return self.__dict__
+        self.ids_similar_films = data[12]
+
+        self.cosenos_similar_films = data[13]
 
