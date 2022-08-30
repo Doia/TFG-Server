@@ -12,53 +12,41 @@ class algoritmo:
 
     def __init__(self):
 
-        self.embeddings_path = "embeddings\\"
+        self.actorsEmbeddings_file_path = constants.EMBEDDING_FOLDER + constants.ACTORS_EMBEDDING
+        self.titleEmbeddings_file_path = constants.EMBEDDING_FOLDER + constants.TITLE_EMBEDDING
+        self.overviewEmbeddings_file_path = constants.EMBEDDING_FOLDER + constants.OVERVIEW_EMBEDDING
 
-        self.actorsEmbeddings_file_path = self.embeddings_path + "embeddings_actors_asimetric_28-08-22"
-        self.titleEmbeddings_file_path = self.embeddings_path + "embeddings_title_28-08-22"
-        self.overviewEmbeddings_file_path = self.embeddings_path + "embeddings_overview-08-21"
-
-        self.overviewEmbeddings_isLoaded = False 
-        self.titleEmbeddings_isLoaded = False
-        self.actorsEmbeddings_isLoaded = False
-
-        self.df_file_path = self.embeddings_path + "Final dataset_08_21.csv"
-
-        self.model_name =  "sentence-transformers/all-MiniLM-L6-v2"
-
+        self.df_file_path = constants.DATA_FOLDER + constants.MOVIES_DATASET
 
         #INICIAR DEVICE
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         #DESCARGAR E INICIAR MODELOS
-        if os.path.exists("modelos/" + self.model_name):
+        if os.path.exists(constants.MODEL_FOLDER + constants.MODEL_NAME):
             print('LOADING MODELS...')
-            self.modelo = SentenceTransformer(model_name_or_path = "modelos/" + self.model_name)
+            self.modelo = SentenceTransformer(model_name_or_path = constants.MODEL_FOLDER + constants.MODEL_NAME)
         else:
             print('DOWNLOADING MODELS...')
-            self.modelo = SentenceTransformer(model_name_or_path = self.model_name)
-            self.modelo.save("modelos/" + self.model_name)
+            self.modelo = SentenceTransformer(model_name_or_path = constants.MODEL_NAME)
+            self.modelo.save(constants.MODEL_FOLDER + constants.MODEL_NAME)
 
         self.modelo = self.modelo.to(self.device)
 
         print('LOADING EMBEDDINGS OVERVIEW...')
         #LOAD EMBEDDINGS OVERVIEW
-        with open(self.overviewEmbeddings_file_path +'.pkl', "rb") as fIn:
+        with open(self.overviewEmbeddings_file_path, "rb") as fIn:
             self.overviewEmbeddings = torch.from_numpy(pickle.load(fIn)).to(self.device)
-            self.overviewEmbeddings_isLoaded = True
         
 
         print('LOADING EMBEDDINGS TITLE...')
         #LOAD EMBEDDINGS TITLE
-        with open(self.titleEmbeddings_file_path +'.pkl', "rb") as fIn:
+        with open(self.titleEmbeddings_file_path, "rb") as fIn:
             self.titleEmbeddings = torch.from_numpy(pickle.load(fIn)).to(self.device)
-            self.titleEmbeddings_isLoaded = True
 
         # print('LOADING EMBEDDINGS ACTORS...')
         # #LOAD EMBEDDINGS TITLE
-        # with open(self.actorsEmbeddings_file_path +'.pkl', "rb") as fIn:
+        # with open(self.actorsEmbeddings_file_path, "rb") as fIn:
         #     self.actorsEmbeddings = torch.from_numpy(pickle.load(fIn)).to(self.device)
-        #     self.actorsEmbeddings_isLoaded = True
         
 
         print('ALL DATA LOADED SUCCESFULLY!\n')
