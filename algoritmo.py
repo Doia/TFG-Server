@@ -16,8 +16,6 @@ class algoritmo:
         self.titleEmbeddings_file_path = constants.EMBEDDING_FOLDER + constants.TITLE_EMBEDDING
         self.overviewEmbeddings_file_path = constants.EMBEDDING_FOLDER + constants.OVERVIEW_EMBEDDING
 
-        self.df_file_path = constants.DATA_FOLDER + constants.MOVIES_DATASET
-
         #INICIAR DEVICE
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 

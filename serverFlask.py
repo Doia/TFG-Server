@@ -68,7 +68,7 @@ def getMovieByPage(page):
     return (data, state)
 
 @cross_origin()
-@app.route('/api/movie/', methods=['POST'])
+@app.route('/api/movie/title/', methods=['POST'])
 def getMovieByName():
     
     genres = request.json['genres']
@@ -91,14 +91,20 @@ def getMovieByName():
         data = { "content": res, "state" : "OK", "cont" : len(res), "totalcont" : totalcont}
         state = 200
 
-    elif mode == 'Query': 
-        if len(genres) == 0:
-            res = queryMovie("select * from movies where original_title like \"%{namet}%\" limit 0, 50".format(namet = name), mysql.connection)
+    elif mode == 'Query':
+
+        if name != "":
+            auxQuery = "MATCH(movies.original_title) AGAINST(\'\"{namet}\"\')".format(namet = name)
+        else:
+            auxQuery = "original_title like \"%{namet}%\"".format(namet = name)
+
+        if len(genres) == 0: 
+            res = queryMovie("select * from movies where {auxQuery} limit 0, 50".format(auxQuery = auxQuery), mysql.connection)
         else:
             #Filtramos por generos
             querySelectGenres = """SELECT movies.* FROM movies left Join movies_genres on movies.id = movies_genres.id_movie
-                                where {queryGenres} and movies.original_title
-                                    like \"%{namet}%\" limit 0, 50""".format(namet = name, queryGenres= generateQueryGenres(genres));
+                                where {queryGenres} and {auxQuery}
+                                limit 0, 50""".format(auxQuery = auxQuery, queryGenres= generateQueryGenres(genres));
             res = queryMovie(querySelectGenres, mysql.connection)
         if res == None:
             data = {'Error': "Error: No se ha podido realizar la consulta a la DB."}
@@ -136,13 +142,19 @@ def getMovieByActor():
         state = 200
     
     elif mode == 'Query':
+
+        if name != "":
+            auxQuery = "MATCH(movies.actors_string) AGAINST(\'\"{namet}\"\')".format(namet = name)
+        else:
+            auxQuery = "actors_string like \"%{namet}%\"".format(namet = name)
+
         if len(genres) == 0:
-            res = queryMovie("select * from movies where actors_string like \"%{namet}%\" limit 0, 50".format(namet = name), mysql.connection)
+            res = queryMovie("select * from movies where {auxQuery} limit 0, 50".format(auxQuery = auxQuery), mysql.connection)
         else:
             #Filtramos por generos
             querySelectGenres = """SELECT movies.* FROM movies left Join movies_genres on movies.id = movies_genres.id_movie
-                                where {queryGenres} and movies.actors_string
-                                    like \"%{namet}%\" limit 0, 50""".format(namet = name, queryGenres= generateQueryGenres(genres));
+                                where {queryGenres} and {auxQuery}
+                                limit 0, 50""".format(auxQuery = auxQuery, queryGenres= generateQueryGenres(genres));
 
             res = queryMovie(querySelectGenres, mysql.connection)
 
@@ -240,8 +252,7 @@ def generateQueryGenresToDiscard(genres):
         res += genreToStr(n) + ' != True '
     return res
 
-
-### funciones para consultas ###
+### funciones para consultas ### 
 
 def queryNumber(query, connection):
     number = execute_query(query, connection)
