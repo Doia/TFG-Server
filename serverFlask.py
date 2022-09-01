@@ -33,6 +33,20 @@ def getTotalCont():
     totalcont = queryNumber("select count(*) from movies", mysql.connection)
 
 #Rutas
+
+@cross_origin
+@app.route('/api/movie/', methods=['GET'])
+def getAllMovies():
+
+    res = queryMovie("Select * from movies LIMIT 50", mysql.connection)
+    if res == None:
+        data = {'Error': "Error: No se ha podido realizar la consulta a la DB."}
+        state = 400
+    else:
+        data = { "content": res, "state" : "OK", "cont" : len(res), "totalcont" : totalcont}
+        state = 200
+    return (data, state)
+
 @cross_origin()
 @app.route('/api/movie/<int:id>/', methods=['GET'])
 def getMoviesById(id):

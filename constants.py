@@ -28,14 +28,15 @@ EMBEDDING_FOLDER = "embeddings/"
 
 #Data Files names
 
-ACTORS_EMBEDDING = "embeddings_actors_asimetric_28-08-22.pkl"
-TITLE_EMBEDDING = "embeddings_title_28-08-22.pkl"
-OVERVIEW_EMBEDDING = "embeddings_overview-08-21.pkl"
+ACTORS_EMBEDDING = "embeddings-actors-08-31.pkl"
+TITLE_EMBEDDING = "embeddings-title-08-31.pkl"
+OVERVIEW_EMBEDDING = "embeddings-overviews-08-31.pkl"
 
-SIMILARITY_MATRIX = "similarity_matrix_08_21.pkl"
+SIMILARITY_MATRIX = "similarity_matrix-08-31.pkl"
 
-MOVIES_DATASET = "Final dataset_08_21.csv"
+MOVIES_DATASET = "Final dataset_08_31.csv"
 GENRES_DATASET = "genres_ids.csv"
+MOVIES_GENRES_DATASET = "movies_genres.csv"
 
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 

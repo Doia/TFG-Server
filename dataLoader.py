@@ -31,14 +31,16 @@ ON {table}({column_name});""".format(table = table, column_name = column_name, i
 FILE_NAME = constants.DATA_FOLDER + constants.MOVIES_DATASET
 MATRIX_FILE_NAME = constants.EMBEDDING_FOLDER + constants.SIMILARITY_MATRIX
 GENRES_FILE_NAME = constants.DATA_FOLDER + constants.GENRES_DATASET
+MOVIES_GENRES_FILE_NAME = constants.DATA_FOLDER + constants.MOVIES_GENRES_DATASET
 
 LOAD_DB = True
-LOAD_genres_table = False
-conf_db = False
+LOAD_genres_table = True
+conf_db = True
 
 print("Cargando dataset...")
 
 df = pd.read_csv(FILE_NAME)
+df['id'] = range(0,len(df))
 
 print("creando engine...")
 engine = create_engine("mysql+pymysql://" + constants.MYSQL_USER + ":" + constants.MYSQL_PASSWORD + "@" + constants.MYSQL_HOST + "/" + constants.MYSQL_DB)
@@ -53,31 +55,8 @@ if LOAD_genres_table:
   df_genres.to_sql('genres', con=engine, if_exists='replace', index = False)
 
   print("creando tabla de movies_genres...")
-
-  #creamos las cabeceras
-  genresHeader = ['id_movie']
-  for id_genre in df_genres['genre_id']:
-        aux = 'genre_' + str(id_genre)
-        genresHeader.append(aux)
-
-  #Creamos la tabla
-  moviesGenres = []
-  for index, row in df.iterrows():
-      booleanArr = [False] * len(df_genres['genre_id'])
-
-      if pd.isna(row['genres']) == False:
-        aux = list(map(int, row['genres'][1 : len(row['genres'])- 1].split(', ')))
-        for genre in aux:
-          booleanArr[genre] = True    
-
-      resArr = [row['id']] + booleanArr
-      moviesGenres.append(resArr)  
-
-  df_moviesGenres = pd.DataFrame(moviesGenres, columns= genresHeader)
-
+  df_moviesGenres = pd.read_csv(MOVIES_GENRES_FILE_NAME)
   df_moviesGenres.to_sql('movies_genres', con=engine, if_exists='replace', index = False)
-
-
 
 if LOAD_DB:     
   print("Cargando Matriz de similitudes...")
@@ -88,22 +67,14 @@ if LOAD_DB:
 
       cosenos_biencoder = []
       index_biencoder = []
-      for elem in resp['similarity']:
+      for elem in resp['cosenos_biencoder']:
           cosenos_biencoder.append(listToString(elem.tolist()))
       
-      for elem in resp['indexes']:
+      for elem in resp['index_biencoder']:
           index_biencoder.append(listToString(elem.tolist()))
 
       df['index_biencoder'] = index_biencoder
       df['cosenos_biencoder'] = cosenos_biencoder
-
-      del df['index_biencoder']
-      del df['cosenos_biencoder']
-
-      df.to_csv(FILE_NAME, index=False)
-
-
-      
 
   except Exception as e:
     raise e
