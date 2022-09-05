@@ -93,13 +93,19 @@ def getMovieByName():
     if mode == 'Algorithm':
 
         IdsToDiscard = None
+        queryGenres = ""
         if len(genres) != 0:
             #Filtramos por generos to discard
             queryGenresToDiscard = "SELECT id_movie FROM movies_genres where {queryGenres}".format(queryGenres= generateQueryGenresToDiscard(genres));
             IdsToDiscard = execute_query(queryGenresToDiscard, mysql.connection) #Tupla de Tupla de INT
+            queryGenres = " and " + generateQueryGenres(genres)
 
         resAlg = algoritmo.execute(name, constants.EMBEDDING.TITLE, IdsToDiscard)     
-        resquery = queryMovie("select * from movies where id in {list} ".format(list = str(resAlg).replace('[','(').replace(']', ')')), mysql.connection)
+        idList= str(resAlg).replace('[','(').replace(']', ')')
+        query = "select movies.* from movies left join movies_genres on id_movie = id where id in {list} {queryGenres}".format(list = idList, queryGenres = queryGenres)
+
+        #resquery = queryMovie("select * from movies where id in {list} ".format(list = idList), mysql.connection)
+        resquery = queryMovie(query, mysql.connection)
         res = sortIndex(resAlg, resquery)
 
         data = { "content": res, "state" : "OK", "cont" : len(res), "totalcont" : totalcont}
@@ -143,13 +149,21 @@ def getMovieByActor():
     res = []
     if mode == 'Algorithm':
         IdsToDiscard = None
+        queryGenres = ""
         if len(genres) != 0:
             #Filtramos por generos to discard
             queryGenresToDiscard = "SELECT id_movie FROM movies_genres where {queryGenres}".format(queryGenres= generateQueryGenresToDiscard(genres));
             IdsToDiscard = execute_query(queryGenresToDiscard, mysql.connection) #Tupla de Tupla de INT
+            queryGenres = " and " + generateQueryGenres(genres)
 
         resAlg = algoritmo.execute(name, constants.EMBEDDING.ACTORS, IdsToDiscard)
-        resquery = queryMovie("select * from movies where id in {list} ".format(list = str(resAlg).replace('[','(').replace(']', ')')), mysql.connection)
+        idList= str(resAlg).replace('[','(').replace(']', ')')
+        query = "select movies.* from movies left join movies_genres on id_movie = id where id in {list} {queryGenres}".format(list = idList, queryGenres = queryGenres)
+
+        #resquery = queryMovie("select * from movies where id in {list} ".format(list = idList), mysql.connection)
+
+        resquery = queryMovie(query, mysql.connection)
+
         res = sortIndex(resAlg, resquery)
 
         data = { "content": res, "state" : "OK", "cont" : len(res), "totalcont" : totalcont}
@@ -158,7 +172,7 @@ def getMovieByActor():
     elif mode == 'Query':
 
         if name != "":
-            auxQuery = "MATCH(movies.actors_string) AGAINST(\'\"{namet}\"\')".format(namet = name)
+            auxQuery = "MATCH(movies.actors_string) AGAINST(\'{namet}\')".format(namet = name)
         else:
             auxQuery = "actors_string like \"%{namet}%\"".format(namet = name)
 
@@ -192,16 +206,19 @@ def getMovieByText():
 
 
     IdsToDiscard = None
+    queryGenres = ""
     if len(genres) != 0:
         #Filtramos por generos to discard
         queryGenresToDiscard = "SELECT id_movie FROM movies_genres where {queryGenres}".format(queryGenres= generateQueryGenresToDiscard(genres));
         IdsToDiscard = execute_query(queryGenresToDiscard, mysql.connection) #Tupla de Tupla de INT
-
+        queryGenres = " and " + generateQueryGenres(genres)
     array = algoritmo.execute(text, constants.EMBEDDING.OVERVIEW, IdsToDiscard)
+    idList = str(array).replace('[', '(').replace(']', ')')
+    #resquery = queryMovie("select * from movies where id in " + idList, mysql.connection)
+    query = "select movies.* from movies left join movies_genres on id_movie = id where id in {list} {queryGenres}".format(list = idList, queryGenres = queryGenres)
+    resquery = queryMovie(query, mysql.connection)
 
-    arraystr = str(array).replace('[', '(').replace(']', ')')
 
-    resquery = queryMovie("select * from movies where id in " + arraystr, mysql.connection)
     if resquery == None:
         data = {'Error': "Error: No se ha podido realizar la consulta a la DB."}
         state = 400
@@ -242,7 +259,7 @@ def genreToStr(n):
     return 'genre_' + str(n)
 
 #Dada una lista de generos [2,3,4] devuelve algo tal que asi:
-# "genre_2 = True OR genre_3 = True OR genre_4 = True" 
+# "genre_2 = True OR genre_3 = True AND genre_4 = True" 
 def generateQueryGenres(genres):
     res = ""
     isNotFirst = False
@@ -307,11 +324,3 @@ def execute_query(query, connection):
 if __name__ == '__main__':
     algoritmo = algoritmo()
     app.run(port= serverPort, debug=True)
-
-
-
-
-
-
-
-
